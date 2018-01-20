@@ -1,7 +1,7 @@
 name: "LeNet"
 layer {
   name: "mnist"
-  type: "Data"
+  type: "OneImageData"
   top: "data"
   top: "label"
   include {
@@ -10,15 +10,20 @@ layer {
   transform_param {
     scale: 0.00390625
   }
-  data_param {
-    source: "C:/caffe/examples/mnist/mnist_train_lmdb"
-    batch_size: 1
-    backend: LMDB
+  oneImage_param {
+    iCols: 100
+	iRows: 50
+	bGray: true
+	iWidth: 20
+	iHeight: 20
+	iBatchSize: 20
+	bSave: false
+	strLoadAddress: "C:/caffe/examples/one_image/digits.png"
   }
 }
 layer {
   name: "mnist"
-  type: "Data"
+  type: "OneImageData"
   top: "data"
   top: "label"
   include {
@@ -27,10 +32,15 @@ layer {
   transform_param {
     scale: 0.00390625
   }
-  data_param {
-    source: "C:/caffe/examples/mnist/mnist_test_lmdb"
-    batch_size: 1
-    backend: LMDB
+    oneImage_param {
+    iCols: 100
+	iRows: 50
+	bGray: true
+	iWidth: 20
+	iHeight: 20
+	iBatchSize: 9
+	bSave: false
+	strLoadAddress: "C:/caffe/examples/one_image/digits.png"
   }
 }
 layer {
@@ -45,7 +55,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 2
+    num_output: 20
     kernel_size: 5
     stride: 1
     weight_filler {
@@ -79,8 +89,8 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 3
-    kernel_size: 3
+    num_output: 50
+    kernel_size: 5
     stride: 1
     weight_filler {
       type: "xavier"

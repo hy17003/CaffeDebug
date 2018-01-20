@@ -83,6 +83,8 @@ void BasePrefetchingDataLayer<Dtype>::InternalThreadEntry() {
 
   try {
     while (!must_stop()) {
+		//该线程一直在把prefetch_free_中的blob指针pop出来给batch，将新的数据载入batch中
+		//如何将batch中的数据传递到网络中？forwoard()中
       Batch<Dtype>* batch = prefetch_free_.pop();
       load_batch(batch);
 #ifndef CPU_ONLY
@@ -103,13 +105,23 @@ void BasePrefetchingDataLayer<Dtype>::InternalThreadEntry() {
 #endif
 }
 
+/*
+数据层，尝试从prefetch_full_队列中弹出数据，如果队列为空，则等待。弹出的数据指针保存在batch中，
+将top[0]（保存数据）的形状设为与batch->data的形状一样，将batch中的数据拷贝到top[0]中，如果有标签数据，
+则将top[1](保存标签)的形状设为batch->label的形状一样，将batch中的标签拷贝到top[1]中。
+数据从prefetch_full中pop出来，输入到网络中后，再push到prefecth_free中去
+*/
 template <typename Dtype>
 void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+	//如果队列中有元素，正常pop，如果队列中无元素，则在日志中打印"Data layer prefetch queue empty"
   Batch<Dtype>* batch = prefetch_full_.pop("Data layer prefetch queue empty");
+  int full_size = prefetch_full_.size();
+  int free_size = prefetch_free_.size();
   // Reshape to loaded data.
   top[0]->ReshapeLike(batch->data_);
-  // Copy the data
+  // Copy the data width * height * channel * batch_size
+  int data_count = batch->data_.count();
   caffe_copy(batch->data_.count(), batch->data_.cpu_data(),
              top[0]->mutable_cpu_data());
   DLOG(INFO) << "Prefetch copied";
@@ -120,7 +132,6 @@ void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
     caffe_copy(batch->label_.count(), batch->label_.cpu_data(),
         top[1]->mutable_cpu_data());
   }
-
   prefetch_free_.push(batch);
 }
 

@@ -79,6 +79,7 @@ void SGDSolver<Dtype>::PreSolve() {
 
 template <typename Dtype>
 void SGDSolver<Dtype>::ClipGradients() {
+	//clip_gradients默认值为-1
   const Dtype clip_gradients = this->param_.clip_gradients();
   if (clip_gradients < 0) { return; }
   const vector<Blob<Dtype>*>& net_params = this->net_->learnable_params();
@@ -108,10 +109,14 @@ void SGDSolver<Dtype>::ApplyUpdate() {
   ClipGradients();
   for (int param_id = 0; param_id < this->net_->learnable_params().size();
        ++param_id) {
+	  //标准化
     Normalize(param_id);
+	//计算正则化梯度
     Regularize(param_id);
+	//将学习率与梯度值结合，计算最终的梯度优化值
     ComputeUpdateValue(param_id, rate);
   }
+  //更新权值，data = data - diff
   this->net_->Update();
 }
 
@@ -141,6 +146,7 @@ void SGDSolver<Dtype>::Normalize(int param_id) {
   }
 }
 
+//正则化
 template <typename Dtype>
 void SGDSolver<Dtype>::Regularize(int param_id) {
   const vector<Blob<Dtype>*>& net_params = this->net_->learnable_params();
@@ -154,6 +160,7 @@ void SGDSolver<Dtype>::Regularize(int param_id) {
     if (local_decay) {
       if (regularization_type == "L2") {
         // add weight decay
+		  //caffe_axpy就是 y = a*x + y, 这里即是累加 a * ∑ w, 这里是计算正则化的梯度
         caffe_axpy(net_params[param_id]->count(),
             local_decay,
             net_params[param_id]->cpu_data(),
@@ -218,6 +225,16 @@ void SGDSolver<Dtype>::ComputeUpdateValue(int param_id, Dtype rate) {
   // Compute the update to history, then copy it to the parameter diff.
   switch (Caffe::mode()) {
   case Caffe::CPU: {
+	  /*
+	  caffe_cpu_axpby：  Y=alpha * X +beta*Y
+	  结合学习率、动量，计算最终的梯度优化量
+	  权值更新公式：
+	  pregrad = lr * grad + m * pregrad (1)
+	  data = data - pregrad				(2)
+	  其中grad是原始梯度，即d(loss)/d(w),在程序中表示为cpu_diff，gregrad是加入动量后的梯度，
+	  在程序中表示为history_，在ComputeUpdateValue函数中，只计算了(1)式，但因为pregrad是保存
+	  在history_中的，而Blob中更新是data = data - diff,因此又将gredgrad拷贝到diff中。
+	  */
     caffe_cpu_axpby(net_params[param_id]->count(), local_rate,
               net_params[param_id]->cpu_diff(), momentum,
               history_[param_id]->mutable_cpu_data());

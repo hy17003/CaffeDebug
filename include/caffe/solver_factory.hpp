@@ -53,6 +53,7 @@ class Solver;
 template <typename Dtype>
 class SolverRegistry {
  public:
+  //函数指针：typedef　函数返回值类型　（＊指针变量名）（参数类型列表）
   typedef Solver<Dtype>* (*Creator)(const SolverParameter&);
   typedef std::map<string, Creator> CreatorRegistry;
 
@@ -63,6 +64,7 @@ class SolverRegistry {
 
   // Adds a creator.
   static void AddCreator(const string& type, Creator creator) {
+	  //Registry()创建一个map，静态函数，多次调用，返回同一个map
     CreatorRegistry& registry = Registry();
     CHECK_EQ(registry.count(type), 0)
         << "Solver type " << type << " already registered.";
@@ -70,8 +72,11 @@ class SolverRegistry {
   }
 
   // Get a solver using a SolverParameter.
+  //根据
   static Solver<Dtype>* CreateSolver(const SolverParameter& param) {
+	  //Solver的类型，SGD等
     const string& type = param.type();
+	//CreatorRegistry的类型为std::map<string, Creator>，Creator是一个通过输入参数创建一个Solver的函数
     CreatorRegistry& registry = Registry();
     CHECK_EQ(registry.count(type), 1) << "Unknown solver type: " << type
         << " (known types: " << SolverTypeListString() << ")";

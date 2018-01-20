@@ -90,30 +90,45 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   // The forward pass computes the softmax prob values.
   softmax_layer_->Forward(softmax_bottom_vec_, softmax_top_vec_);
+  vector<int> prob_shape = prob_.shape();
   const Dtype* prob_data = prob_.cpu_data();
   const Dtype* label = bottom[1]->cpu_data();
   int dim = prob_.count() / outer_num_;
   int count = 0;
+  //loss 是整个batch_size的loss
   Dtype loss = 0;
+  //outer_num 即是 batch_size
+  //inner_num 即是 width * height, 这里width * height = 1
   for (int i = 0; i < outer_num_; ++i) {
     for (int j = 0; j < inner_num_; j++) {
       const int label_value = static_cast<int>(label[i * inner_num_ + j]);
       if (has_ignore_label_ && label_value == ignore_label_) {
         continue;
       }
+	  //标签必须在0~size之间
       DCHECK_GE(label_value, 0);
       DCHECK_LT(label_value, prob_.shape(softmax_axis_));
-      loss -= log(std::max(prob_data[i * dim + label_value * inner_num_ + j],
-                           Dtype(FLT_MIN)));
+	  //在标签位置计算得到的可能性
+	  const Dtype* probRes = &(prob_data[i * dim]);
+	  Dtype tmpProb = prob_data[i * dim + label_value * inner_num_ + j];
+	  loss -= log(std::max(tmpProb, Dtype(FLT_MIN)));
       ++count;
     }
   }
+  //top[0]中保存了softmax的平均loss值
   top[0]->mutable_cpu_data()[0] = loss / get_normalizer(normalization_, count);
   if (top.size() == 2) {
     top[1]->ShareData(prob_);
   }
 }
 
+
+/*
+反向传播的目的，就是计算bottom_diff，对于softmax的反向传播，设softmax的损失为E，E为指数损失
+E = -log(exp(y0)/∑exp(yk)),其中y0为正确标签，softmax的输入为Y（y0, y1, ... yk）
+对于分类正确的yk有dE/dy = Pk 即标签k上的概率
+对于分类错误的yk有dE/dy = Pk 即标签k上的概率-1
+*/
 template <typename Dtype>
 void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
@@ -124,6 +139,8 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     const Dtype* prob_data = prob_.cpu_data();
+	//将正向传播计算得到的概率值作为bottom_diff的值
+	
     caffe_copy(prob_.count(), prob_data, bottom_diff);
     const Dtype* label = bottom[1]->cpu_data();
     int dim = prob_.count() / outer_num_;
@@ -136,6 +153,7 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
             bottom_diff[i * dim + c * inner_num_ + j] = 0;
           }
         } else {
+			//正确标签对应的bottom_diff自减1，为什么？ 如上注释
           bottom_diff[i * dim + label_value * inner_num_ + j] -= 1;
           ++count;
         }

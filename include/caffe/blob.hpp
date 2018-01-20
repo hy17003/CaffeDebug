@@ -216,6 +216,7 @@ class Blob {
     return diff_;
   }
 
+  
   const Dtype* cpu_data() const;
   void set_cpu_data(Dtype* data);
   const int* gpu_shape() const;
@@ -265,6 +266,8 @@ class Blob {
 
   bool ShapeEquals(const BlobProto& other);
 
+  void PrintBlob();
+  void PrintBlob(const char* filename);
  protected:
   shared_ptr<SyncedMemory> data_;
   shared_ptr<SyncedMemory> diff_;

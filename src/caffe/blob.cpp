@@ -152,12 +152,14 @@ void Blob<Dtype>::ShareDiff(const Blob& other) {
 template <> void Blob<unsigned int>::Update() { NOT_IMPLEMENTED; }
 template <> void Blob<int>::Update() { NOT_IMPLEMENTED; }
 
+//权值更新
 template <typename Dtype>
 void Blob<Dtype>::Update() {
   // We will perform update based on where the data is located.
   switch (data_->head()) {
   case SyncedMemory::HEAD_AT_CPU:
     // perform computation on CPU
+	  //data = data - diff
     caffe_axpy<Dtype>(count_, Dtype(-1),
         static_cast<const Dtype*>(diff_->cpu_data()),
         static_cast<Dtype*>(data_->mutable_cpu_data()));
@@ -533,6 +535,57 @@ void Blob<float>::ToProto(BlobProto* proto, bool write_diff) const {
       proto->add_diff(diff_vec[i]);
     }
   }
+}
+
+template <typename Dtype>
+void Blob<Dtype>::PrintBlob()
+{
+	vector<int> blob_shape = shape();
+	if (blob_shape.size()!= 4)
+		return;
+	for (int n = 0; n < blob_shape[0]; n++)
+	{
+		printf("\n\n axis = batch %d\n", n);
+		for (int c = 0; c < blob_shape[1]; c++)
+		{
+			printf("\n axis = channel %d\n", c);
+			for (int h = 0; h < blob_shape[2]; h++)
+			{
+				for (int w = 0; w < blob_shape[3]; w++)
+				{
+					printf("%.02f ", data_at(n, c, h, w));
+				}
+				printf("\n");
+			}
+		}
+	}
+}
+
+template <typename Dtype>
+void Blob<Dtype>::PrintBlob(const char* filename)
+{
+	vector<int> blob_shape = shape();
+	if (blob_shape.size() != 4)
+		return;
+
+	FILE *fp = fopen(filename, "w");
+	for (int n = 0; n < blob_shape[0]; n++)
+	{
+		fprintf(fp, "\n\n axis = batch %d\n", n);
+		for (int c = 0; c < blob_shape[1]; c++)
+		{
+			fprintf(fp,"\n axis = channel %d\n", c);
+			for (int h = 0; h < blob_shape[2]; h++)
+			{
+				for (int w = 0; w < blob_shape[3]; w++)
+				{
+					fprintf(fp, "%.02f, ", data_at(n, c, h, w));
+				}
+				fprintf(fp, "\n");
+			}
+		}
+	}
+	fclose(fp);
 }
 
 INSTANTIATE_CLASS(Blob);

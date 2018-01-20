@@ -409,7 +409,29 @@ message LayerParameter {
   optional WindowDataParameter window_data_param = 129;
   optional MILDataParameter mil_data_param = 0x004d4944; //"MID"
   optional MILParameter mil_param = 0x004d494c; //"MIL"
+  
+  //新加入的SquareLayer层
+  optional SquareLayerParameter square_param = 200;
+  //新加入的数据层
+  optional OneImageDataLayerParameter oneImage_param = 201;
 }
+//新加入的SquareLayer参数
+message SquareLayerParameter {
+  optional float power = 1 [default = 2.0];
+};
+
+//新的数据层参数
+message OneImageDataLayerParameter{
+  optional uint32 iCols = 1;
+  optional uint32 iRows = 2;
+  optional bool bGray = 3 [default = true];
+  optional uint32 iWidth = 4 [default = 0];
+  optional uint32 iHeight = 5 [default = 0];
+  optional string strLoadAddress = 6;
+  optional bool bSave = 7 [default = false];
+  optional string strSaveAddress = 8;
+  optional uint32 iBatchSize = 9;
+};
 
 // Message that stores parameters used to apply transformation
 // to the data layer's data
@@ -1478,3 +1500,4 @@ message PReLUParameter {
   // Whether or not slope paramters are shared across channels.
   optional bool channel_shared = 2 [default = false];
 }
+

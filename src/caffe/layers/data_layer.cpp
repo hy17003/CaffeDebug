@@ -52,6 +52,14 @@ void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 }
 
 // This function is called on prefetch thread
+/*
+transformed_data_是一个只能保存一张图像的blob，它只是一个中介，相当于一个临时变量，将数据拷贝到top时，将transformed_data_的指针指向top中的
+相应位置，将datum的图像数据经过Transform变换，其中包括几何变换如镜向，比例等变换，变换到transformed_data上，而由于transformed_data指向top中
+的位置，也即完成了数据向top的载入
+
+load_batch函数将数据从free队列取出，进行变换后的数据载入到batch中，原数据再推入full队列中
+load_batch在何处被调用？是否在data_layer的forward中？
+*/
 template<typename Dtype>
 void DataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   CPUTimer batch_timer;
@@ -79,6 +87,7 @@ void DataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   if (this->output_labels_) {
     top_label = batch->label_.mutable_cpu_data();
   }
+  vector<int> transformed_data_shape = this->transformed_data_.shape();
   for (int item_id = 0; item_id < batch_size; ++item_id) {
     timer.Start();
     // get a datum

@@ -58,6 +58,9 @@ void PowerLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         // Special case for y = (shift + scale * x)^2
         //     -> dy/dx = 2 * scale * (shift + scale * x)
         //              = diff_scale * shift + diff_scale * scale * x
+
+		  //caffe_cpu_axpby计算 (diff_scale_ * scale_) * bottom_data + Dtype(0) -> bottom_diff
+		  //反向传播，就是计算bottom_diff，dy/dx = ax^(a-1)，这里的x即是bottom_data
         caffe_cpu_axpby(count, diff_scale_ * scale_, bottom_data,
             Dtype(0), bottom_diff);
         if (shift_ != Dtype(0)) {

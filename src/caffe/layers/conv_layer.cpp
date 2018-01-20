@@ -24,6 +24,7 @@ void ConvolutionLayer<Dtype>::compute_output_shape() {
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+	//blobs_是一个vector<Blob>向量，其保存的是本层学习的参数
   const Dtype* weight = this->blobs_[0]->cpu_data();
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->cpu_data();
@@ -36,6 +37,19 @@ void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         this->forward_cpu_bias(top_data + n * this->top_dim_, bias);
       }
     }
+  }
+  //调试信息
+  if (layer_name == "conv2")
+  {
+	  vector<int> top_shape = top[0]->shape();
+	  top[0]->PrintBlob("C:\\caffe\\examples\\mnist\\top_blob.txt");
+	  vector<int> bottom_shape = bottom[0]->shape();
+	  bottom[0]->PrintBlob("C:\\caffe\\examples\\mnist\\bottom_blob.txt");
+	  for (int i = 0; i < blobs_.size(); i++)
+	  {
+		  vector<int> blob_shape = blobs_[i]->shape();
+		  blobs_[i]->PrintBlob("C:\\caffe\\examples\\mnist\\kernel.txt");
+	  }
   }
 }
 
